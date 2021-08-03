@@ -75,18 +75,29 @@ namespace UML_Generator
             
             while(Height > 0)
             {
-                AddElementInWidth(fileName, dict, Height, ref left, ref MaxLeft);                
+                AddElementInWidth(fileName, dict, Height, ref left, ref MaxLeft);
+
+                var base_ = dict.Values.Select(x => x.Key);
+
+                base_ = base_.Concat(tree.typesInUMLTree.Where(x => x.type.GetInheritenceRank() + i ==
+                        tree.typesInUMLTree.Max(x => x.type.GetInheritenceRank())).Select(x => x.type));
+
+                base_ = base_.Distinct();
+
+                dict = base_.GroupBy(x => x.BaseType).ToDictionary(x => x.Key);
+
+                /*
                 dict = tree.typesInUMLTree.Where(x => x.type.GetInheritenceRank() + i ==
                                                                     tree.typesInUMLTree.Max(x => x.type.GetInheritenceRank()))
                                           .Select(x => (Type)x)
                                           .GroupBy(x => x.BaseType)
-                                          .ToDictionary(x => x.Key);
+                                          .ToDictionary(x => x.Key);*/
                 Height -= 200;
                 i++;
 
             }
 
-            tree.typesInUMLTree.Find(x => x.type.GetInheritenceRank() == tree.typesInUMLTree.Min(x => x.type.GetInheritenceRank())).positionInDocument = (left, Height);
+            tree.typesInUMLTree.Find(x => x.type.GetInheritenceRank() == tree.typesInUMLTree.Min(x => x.type.GetInheritenceRank())).SetPosition((left, Height));
             AddSquareElement(fileName, tree.typesInUMLTree.Find(x => x.type.GetInheritenceRank() == tree.typesInUMLTree.Min(x => x.type.GetInheritenceRank())).type.Name, Height, left);
 
             //create the code for drawing all of the lines.
@@ -95,7 +106,6 @@ namespace UML_Generator
 
             //add the code for drawing all of the lines to the HTML page.
             string fileData = File.ReadAllText(fileName);
-            Console.WriteLine(strokesCode);
             fileData = fileData.Replace(@"**SET_STROKES_HERE**", strokesCode);
             fileData = fileData.Replace($@"**WIDTH**", (MaxLeft + 1500).ToString()); //we use this for setting the bounds of the canvas.
             fileData = fileData.Replace($@"**ARROWS**", arrowsCode);
@@ -119,7 +129,6 @@ namespace UML_Generator
             if (children.type.BaseType == typeof(Object))
                 return;
 
-
             strokesCode += @$"ctx.moveTo({children.positionInDocument.left} + 200 / 2, {children.positionInDocument.height} - 10);ctx.lineTo({base_type
                 .positionInDocument.left }+ {randPosition}, {base_type.positionInDocument.height} + 100);ctx.stroke();{"\n"}";
         }
@@ -138,10 +147,9 @@ namespace UML_Generator
             }
 
             //convert it to degrees
-            Console.WriteLine((Math.Tanh(incline) * 180) / Math.PI);
             return 180 - (Math.Tanh(incline) * 180 / Math.PI);
         }
-
+        #region NotUsed
         private Dictionary<Type, double> AddElementsInWidthLastLine(string fileName, List<Type> types, double height)
         {
             Dictionary<Type, (int amount, double sum)> avrages = new Dictionary<Type, (int amount, double sum)>();
@@ -151,14 +159,12 @@ namespace UML_Generator
                 if (!avrages.ContainsKey(types[i].BaseType))
                     avrages.Add(types[i].BaseType, (0, 0));
             }
-
-            types.Select(x => x.BaseType).Distinct().ToList().ForEach(x => Console.WriteLine(x));
-
+            
             double left = 0.0d;
 
             for(int i = 0; i < types.Count; i++)
             {
-                ((UMLType)types[i]).positionInDocument = (left, height);
+                ((UMLType)types[i]).SetPosition((left, height));
                 avrages[types[i].BaseType] = (avrages[types[i].BaseType].amount + 1, avrages[types[i].BaseType].sum + left);
                 AddSquareElement(fileName, types[i].Name, height, left);
                 left += width + 50;
@@ -195,20 +201,20 @@ namespace UML_Generator
             return avg;
         }
 
+        #endregion
+
         private void AddElementInWidth(string fileName, Dictionary<Type, IGrouping<Type, Type>> dict, double height, ref double left, ref double MaxLeft)
         {
             double elements = 0;
             double firstLeft = left;
 
-            var sortBy = !dict.Keys.All(x => UMLNode.GetUMLNode(x).down.GetLine().Count == UMLNode.GetUMLNode(dict.Keys.ElementAt(0)).down.GetLine().Count)
-                         ? dict.Keys.OrderByDescending(x => UMLNode.GetUMLNode(x).down.GetLine().Count)
-                         : dict.Keys.OrderByDescending(x => UMLNode.GetUMLNode(x).down.down != null ? UMLNode.GetUMLNode(x).down.down.GetLine().Count : 0);
-
-            foreach (var family in sortBy)
+            foreach (var family in dict.Keys)
             {
-                foreach(var class_ in dict[family].Select(x => UMLNode.GetUMLNode(x)).OrderByDescending(x => x.up.value.type.Name))
+                var contained_ = ((UMLType)family).containsFromCurrent;
+
+                foreach(var class_ in dict[family].Select(x => UMLNode.GetUMLNode(x)))
                 {
-                    class_.value.positionInDocument = (left, height); //we save the position
+                    class_.value.SetPosition((left, height)); //we save the position
                     AddSquareElement(fileName, class_.value.type.Name, height, left);
                     left += width + 50; //next position
                     elements++;
@@ -220,17 +226,7 @@ namespace UML_Generator
             left = (elements / 2) * (2 * firstLeft + (elements - 1) * (width + 50)); //find middle by mathematic formule
                                                                                      //(n/2)(a1 + an) = Sum of all of the positions.
                                                                                      //then we find the average one.
-#if DEBUG
-            Console.WriteLine(fileName);
-            Console.WriteLine(left);
-#endif
             left /= elements;
-
-#if DEBUG
-            Console.WriteLine(left);
-            Console.WriteLine("_________");
-            //where we should start from next time.
-#endif
         }
 
         private void AddSquareElement(string fileName, string typeName, double top, double left)

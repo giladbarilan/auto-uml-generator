@@ -11,23 +11,13 @@ namespace UML_Generator
     {
         public static void Main(string[] args)
         {
+
             List<Type> typesInProject = PossibleTypesReader.GetAllTypes(); //gets the types in the project.     
             typesInProject.RemoveAll(x => x.IsGenericType);
+            typesInProject.RemoveAll(x => x.IsAbstract);
             List<UMLTree> projectTrees = UMLManager.GetTrees(typesInProject);
-            projectTrees.ForEach(x =>
-            {
-                x.PrintTree();
-                Console.WriteLine("_____________");
-            }
-            );
-
-
-
-            Stopwatch f = new Stopwatch();
 
             RunSync(projectTrees);
-
-            Console.WriteLine(f.ElapsedMilliseconds);
         }
 
         static void RunSync(List<UMLTree> trees)
@@ -78,10 +68,15 @@ namespace UML_Generator
     public class Brosh: Tree { }
     public class Flower: Plant { }
     public class Rose: Flower { }
+    public class Lilach: Flower { }
+    public class BlueHorn: Lilach { }
+    public class Elephent: Animal { }
     public class Mammals: Animal { }
     public class Cow: Mammals { }
     public class Human: Mammals { }
     public class Dolphin: Mammals { }
     public class CatsFamily: Animal { }
     public class Lion: CatsFamily { }
+
+
 }

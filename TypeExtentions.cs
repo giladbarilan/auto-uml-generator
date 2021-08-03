@@ -91,11 +91,11 @@ namespace UML_Generator
             List<MemberInfo> relevantMembers = GetRelevantMembers(t);
             relevantMembers.RemoveAll(x => x.DeclaringType != t); //remove all the types from fathers.
 
-            return relevantMembers.Select(x =>
+            return relevantMembers.Where(x => (x as PropertyInfo) != null || (x as FieldInfo) != null).Select(x =>
             {
                 if (x is FieldInfo)
                     return (x as FieldInfo).FieldType;
-                return (x as PropertyInfo)?.PropertyType;
+                return (x as PropertyInfo).PropertyType;
             }).ToArray();
         }
 
@@ -124,6 +124,27 @@ namespace UML_Generator
             }
 
             return members;
+        }
+
+        /// <summary>
+        /// Assuming the types on the same inheritence rank and they are related.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public static int ClosestParent(this Type a, Type other)
+        {
+            int times = 0;
+            
+            while(other.BaseType != a.BaseType)
+            {
+                other = other.BaseType;
+                a = a.BaseType;
+                times++;
+            }
+
+            Console.WriteLine($"Closest parent of {a} and {other} is {times}");
+            return times;
         }
     }
 }

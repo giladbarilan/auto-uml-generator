@@ -9,35 +9,9 @@ namespace UML_Generator
     class UMLType
     {
         protected static List<UMLType> typesCreated = new List<UMLType>();
-        public (double left, double height) positionInDocument { get; set; } = (0, 0);
+        public (double left, double height) positionInDocument { get; private set; }
         public Type type { get; init; } //the type.
         public Type[] containsFromCurrent { get; private set; } //if the type is defined in the current object
-
-        /// <summary>
-        /// Shows the hirarchy from the type.
-        /// We don't include object in the hirarchy.
-        /// </summary>
-        /// <returns></returns>
-        public UMLTree? GetUMLTreeHirarchy()
-        {
-            //empty list.
-            if (type.GetType() == typeof(Object))
-                return null;
-
-            Type currentType = type.BaseType;
-            List<UMLType> umlTypes = new List<UMLType>();
-            umlTypes.Add((UMLType)type);
-
-            while(currentType != typeof(Object))
-            {
-                umlTypes.Add(new UMLType(currentType));
-                currentType = currentType.BaseType;
-            }
-
-            umlTypes.Reverse();
-
-            return new UMLTree(umlTypes);
-        }
 
         public static UMLType GetUMLType(Type type)
         {
@@ -50,6 +24,12 @@ namespace UML_Generator
             UMLType instance = new UMLType(type);
             typesCreated.Add(instance);
             return instance;
+        }
+
+        public void SetPosition((double, double) pos)
+        {
+            if (this.positionInDocument == default)
+                this.positionInDocument = pos;
         }
 
         private UMLType(Type type)
